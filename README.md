@@ -12,7 +12,7 @@ It finds the minimum volume enclosing ellipsoid for a set of data points
 See the Rmd file for further information
 
 ```r
-source("MinVolEllipse.r")
+source("MinVolEllipse.R")
 mve = MinVolEllipse(t(df),0.01)
 print(mve$center)
 print(mve$matrix)
