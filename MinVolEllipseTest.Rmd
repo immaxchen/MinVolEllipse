@@ -1,0 +1,81 @@
+---
+title: "R: MinVolEllipse"
+author: "Max Chen 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data
+
+Load required packages
+
+```{r lib}
+source("MinVolEllipse.r")
+library(mvtnorm)
+library(fit.models)
+library(robust)
+library(car)
+```
+
+Generate sample data
+
+```{r dat}
+rndsample = rmvnorm(100,mean=c(3,5),sigma=matrix(c(1,0.5,0.5,2),2,2))
+colnames(rndsample) = c("X1","X2")
+df = data.frame(rndsample)
+par(pty="s")
+plot(df,asp=1,xlim=c(-2,8),ylim=c(0,10))
+```
+
+## Reference
+
+Using Robust Covariance Estimation
+
+```{r cov}
+robfit = covRob(df)
+decov = svd(robfit$cov)
+matS = diag(sqrt(decov$d))
+matR = decov$u
+matC = robfit$center
+print(matS)
+print(matR)
+print(matC)
+
+df_unit = as.matrix(sweep(df,2,matC,"-")) %*% solve(matR) %*% solve(matS)
+par(pty="s")
+plot(df_unit,asp=1)
+
+dist = sqrt(rowSums(df_unit^2))
+radiEvlp = max(dist)
+par(pty="s")
+plot(df,asp=1,xlim=c(-2,8),ylim=c(0,10))
+ellipse(robfit$center,robfit$cov,radiEvlp,lty="dashed")
+```
+
+## Calculation
+
+Testing MinVolEllipse function
+
+```{r mve}
+mve = MinVolEllipse(t(df),0.01)
+deMat = svd(solve(mve$matrix))
+matS = diag(sqrt(deMat$d))
+matR = deMat$u
+matC = as.vector(mve$center)
+print(matS)
+print(matR)
+print(matC)
+
+df_unit = as.matrix(sweep(df,2,matC,"-")) %*% solve(matR) %*% solve(matS)
+par(pty="s")
+plot(df_unit,asp=1)
+
+dist = sqrt(rowSums(df_unit^2))
+radiEvlp = max(dist)
+par(pty="s")
+plot(df,asp=1,xlim=c(-2,8),ylim=c(0,10))
+ellipse(as.vector(mve$center),solve(mve$matrix),radiEvlp,lty="dashed")
+```
