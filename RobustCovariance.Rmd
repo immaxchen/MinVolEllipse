@@ -1,5 +1,5 @@
 ---
-title: "R: MinVolEllipse"
+title: "R: Robust Covariance"
 author: "Max Chen 2018"
 output: html_document
 ---
@@ -17,11 +17,12 @@ Load required packages
 # install.packages("robust")
 # install.packages("car")
 # install.packages("pracma")
+# install.packages("ggplot2")
 suppressMessages(library(mvtnorm))
 suppressMessages(library(robust))
 suppressMessages(library(car))
 suppressMessages(library(pracma))
-suppressMessages(source("MinVolEllipse.R"))
+suppressMessages(library(ggplot2))
 ```
 
 ## Data
@@ -36,52 +37,52 @@ par(pty="s")
 plot(df,asp=1,xlim=c(-2,8),ylim=c(0,10))
 ```
 
-## Reference
+## Calculation
 
-Using Robust Covariance Estimation
+Calculate robust covariance estimator
 
-```{r cov}
+```{r cal}
 robfit = covRob(df)
+print(robfit$center)
+print(robfit$cov)
+```
+
+Transform back to unit distribution
+
+```{r unit}
 decov = svd(robfit$cov)
 matS = diag(sqrt(decov$d))
 matR = decov$u
 matC = robfit$center
-print(matS)
-print(matR)
-print(matC)
-
 df_unit = as.matrix(sweep(df,2,matC,"-")) %*% solve(matR) %*% solve(matS)
 par(pty="s")
 plot(df_unit,asp=1)
+```
 
+## Visualize
+
+Plot confidence ellipse
+
+```{r plt}
+nDim = 2
+cumP = 0.95
+radiProb = sqrt(qchisq(cumP,nDim))
 dist = sqrt(rowSums(df_unit^2))
 radiEvlp = max(dist)
 par(pty="s")
 plot(df,asp=1,xlim=c(-2,8),ylim=c(0,10))
+ellipse(robfit$center,robfit$cov,radiProb)
 ellipse(robfit$center,robfit$cov,radiEvlp,lty="dashed")
 ```
 
-## Calculation
+Plot density function
 
-Testing MinVolEllipse function
-
-```{r mve}
-mve = MinVolEllipse(t(df),0.01)
-deMat = svd(solve(mve$matrix))
-matS = diag(sqrt(deMat$d))
-matR = deMat$u
-matC = as.vector(mve$center)
-print(matS)
-print(matR)
-print(matC)
-
-df_unit = as.matrix(sweep(df,2,matC,"-")) %*% solve(matR) %*% solve(matS)
-par(pty="s")
-plot(df_unit,asp=1)
-
-dist = sqrt(rowSums(df_unit^2))
-radiEvlp = max(dist)
-par(pty="s")
-plot(df,asp=1,xlim=c(-2,8),ylim=c(0,10))
-ellipse(as.vector(mve$center),solve(mve$matrix),radiEvlp,lty="dashed")
+```{r pdf}
+XY = meshgrid(seq(-2,8,length=100),seq(0,10,length=100))
+XY = data.frame(as.vector(XY$X),as.vector(XY$Y))
+colnames(XY) = c("X1","X2")
+XY$pdf = dmvnorm(XY,mean=robfit$center,sigma=robfit$cov)
+ggplot(XY,aes(X1,X2)) + 
+    geom_raster(aes(fill=pdf),interpolate=TRUE) + 
+    scale_fill_gradientn(colours=c("white","blue"))
 ```

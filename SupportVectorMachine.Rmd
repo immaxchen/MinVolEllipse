@@ -1,0 +1,63 @@
+---
+title: "R: Support Vector Machine"
+author: "Max Chen 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Library
+
+Load required packages
+
+```{r lib}
+# install.packages("mvtnorm")
+# install.packages("e1071")
+# install.packages("pracma")
+suppressMessages(library(mvtnorm))
+suppressMessages(library(e1071))
+suppressMessages(library(pracma))
+```
+
+## Data
+
+Generate sample data
+
+```{r dat}
+rndsample = rmvnorm(100,mean=c(3,5),sigma=matrix(c(1,0.5,0.5,2),2,2))
+colnames(rndsample) = c("X1","X2")
+df = data.frame(rndsample)
+par(pty="s")
+plot(df,asp=1,xlim=c(-2,8),ylim=c(0,10))
+```
+
+## Model
+
+Fit model and predict
+
+```{r svm}
+model = svm(x=df,y=NULL,type="one-classification",gamma=0.25,nu=0.05)
+print(model)
+pred = predict(model,df)
+table(pred)
+par(pty="s")
+plot(df[!pred,],col="red",pch=4,asp=1,xlim=c(-2,8),ylim=c(0,10))
+points(df[pred,],col="blue")
+```
+
+## Visualize
+
+Plot decision boundary
+
+```{r vis}
+XY = meshgrid(seq(-2,8,length=100),seq(0,10,length=100))
+XY = data.frame(as.vector(XY$X),as.vector(XY$Y))
+colnames(XY) = c("X1","X2")
+predXY = predict(model,XY,decision.values=TRUE)
+par(pty="s")
+plot(XY[!predXY,],col="red",pch=16,asp=1,xlim=c(-2,8),ylim=c(0,10))
+points(XY[predXY,],col="blue",pch=16)
+points(df)
+```
